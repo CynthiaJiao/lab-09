@@ -1,7 +1,7 @@
 ---
 title: "Lab 09 - Grading the professor, Pt. 1"
-author: "Insert your name here"
-date: "Insert date here"
+author: "Cynthia Jiao"
+date: "3/16/2025"
 output: github_document
 ---
 
@@ -9,33 +9,179 @@ output: github_document
 
 ```{r load-packages, message=FALSE}
 library(tidyverse) 
-library(tidymodels)
 library(openintro)
+library(broom)
+
+print(evals)
+?evals
 ```
 
 ## Exercise 1
 
-*Provide your answer here.*  
-Add code chunks as needed. Don't forget to label your code chunks.
-
-
+The distribution of score is negatively/left skewed, because more observations fall on the right side, leaving a long tail on the left. From the summary statistics, the mean is 4.175, and the median 4.3. This is consistent with the histogram, because a larger median (than mean) typically features a left skewed distribution.
 ```{r exercise1_code}
-# Add your R code here
+evals %>%
+  ggplot(aes(x = score)) +
+  geom_histogram(binwidth = 0.1)
+
+summary(evals$score)
+
 ```
 
 ## Exercise 2
 
-*Provide your answer here.*  
-Add code chunks as needed.
-
+From the scatterplot, the relationship between average beauty rating and evaluation scores is not very clear, but generally shows a weak positive trend, where professors who get higher beauty scores on average also get higher teaching evaluation scores.
 ```{r exercise2_code}
-# Add your R code here
+
+evals %>%
+  ggplot(aes(x = bty_avg, y = score)) +
+  geom_point() +
+  labs(
+    title = "Relationship between Beauty Score and Teaching Evaluation Score",
+    x = "Average Beauty Score",
+    y = "Teaching Evaluation Score"
+  ) +
+  theme_minimal()
+
 ```
 
-## Additional Exercises
+## Exercise 3
 
-*Repeat the format above for additional exercises.*
+This time, the positive relationship is easier to read and looks stronger than the previous graph. I googled the difference between geom_point and geom_jitter, and it explains that jitter means adding  a small amount of random variation to the location of each point, which is a useful way of handling overlapping dots caused by discreteness in smaller datasets. According to the first exercise, there are a lot of score that fall within the same range, and geom_point can only show them as overlapping points, which makes it harder to read the relationship clealy from the first scatterplot. This could be misleading such that we might think the relationship between score and bty_avg is not so strong just by looking at the plot. After adding some random noise to each point, the overlapped dots are more spread out and thus show a clearer trend.
+```{r exercise3_code}
 
-## Hint
+evals %>%
+  ggplot(aes(x = bty_avg, y = score)) +
+  geom_jitter() +
+  labs(
+    title = "Relationship between Beauty Score and Teaching Evaluation Score",
+    x = "Average Beauty Score",
+    y = "Teaching Evaluation Score"
+  ) +
+  theme_minimal()
 
-For Exercise 12, the `relevel()` function can be helpful!
+
+
+```
+
+## Exercise 4
+
+The slope is 0.067, and intercept is 3.88. 
+
+score = 0.067*bty_avg + 3.88
+```{r exercise4_code}
+
+
+m_bty <-lm(evals$score ~ evals$bty_avg)
+summary(m_bty)
+
+```
+
+## Exercise 5, 6, 7, & 8
+
+According to the model, the slope is 0.067 and bty_avg is a significant predictor of score. Therefore, bty_avg is a positively predictive of score such that professors who are rated more beautiful on average also tend to have higher teaching evaluation scores. This means that for every 1 unit increase in bty_avg, the evaluation score increases by 0.06664. This relationship is clear on the graph, as the orange line shows a weak yet positive trend.
+
+The interpret of the slope being 3.88 doesn't really make sense because it means that when a professor has an average beauty rating of zero, the predicted evaluation score will be 3.88. However, the lowest rating a professor could possibly receive on their average beauty score is 1. Zero is not a possible score, so the intercept of this model does not have practical meaning. It's more of a mathematical result from fitting the model. It's better to look at slope than intercept.
+
+The R-squared of the model is 0.033, meaning that 3.3% of variance in evaluation score is explained by average beauty score.
+```{r exercise5_code}
+
+ggplot(evals, aes(x = bty_avg, y = score)) +
+  geom_jitter() +  
+  geom_smooth(method = "lm", color = "orange", se = FALSE) +  # Regression line in orange
+  labs(title = "Relationship between Beauty Score and Teaching Evaluation Score",
+       x = "Average Beauty Score",
+       y = "Teaching Evaluation Score") +
+  theme_minimal()
+
+```
+
+## Exercise 9 & 10
+
+score = 0.14*gender + 4.09
+
+R appears to treat gender as a dummy coded variable, but I am not sure which one is 0 and which one is 1.
+Regardless, this model means that gender is a significant, positive predictor of score. For every one unit of increase in gender (although I have no idea what this would mean practically til I know which gender is coded as 0...), there will be 0.14 unit of increase in evaluation scores. In common English, it means that being either male or female (whichever is coded as 1) will have higher evaluation score than the other gender that is coded as 0.
+
+Slope is equal to 4.09, meaning that when gender is 0 (again I don't know what this would mean since gender is categorical...), the evaluation score will be 4.09. This means that being the gender that is coded as 0 will have a predicted evaluation score of 4.09.
+
+I am guessing that male is coded as 1 and female is coded as 0, therefore, here are equations for male and female professors.
+
+score = 4.09 + 0.14(0) = 4.09 => female professor equation
+score = 4.09 + 0.14(1) = 4.23 => male professor equation
+
+```{r exercise9_code}
+
+m_gen <-lm(evals$score ~ evals$gender)
+summary(m_gen)
+
+## to make sure that r did code male as 1 and female as 0
+evals <- evals %>%
+  mutate(gender_coded = ifelse(gender == "female", 0, 1))
+
+m_gen_coded <-lm(evals$score ~ evals$gender_coded)
+summary(m_gen_coded)
+
+## yeah the coded model gives the exact same slope of 0.14 as m_gen, so yes, I am guess right that male is coded as 1 and female is coded as 0.
+```
+
+## Exercise 11
+
+R seems to treat teaching professor as the reference group (coded as 0).
+
+score = -0.145*rank + 4.28 => contrast between tenured and teaching professor
+
+This model means that teaching professor (when rank = 0) is predicted to have a 4.28 evaluation score. For every one unit of increase (when it's a tenured professor), there will be 0.145 unit of decrease in evaluation score.
+
+score = -0.13*rank + 4.28 => contrast between tenure track and teaching professor
+
+This model means that teaching professor (when rank = 0) is predicted to have a 4.28 evaluation score. For every one unit of increase (when it's a tenure track professor), there will be 0.13 unit of decrease in evaluation score.
+
+R-squared value is 0.007332, which indicates that the model explains only about 0.73% of the variability in professor evaluation scores. Based on the p value of both contrast, difference between teaching vs. tenured is significant, but teaching vs. tenure track is not significant. 
+```{r exercise11_code}
+
+m_rank <-lm(evals$score ~ evals$rank)
+summary(m_rank)
+```
+
+## Exercise 12 & 13
+
+When tenure track is the reference group, here are the models.
+
+score = -0.016*rank + 4.28 => contrast between tenure track and tenured professor
+
+This model means that tenure track professors (when rank = 0) are predicted to have a 4.28 evaluation score. For every one unit increase (when the professor is tenured, the evaluation score is expected to decrease by 0.016 units.
+
+score = 0.13 * rank + 4.28 => contrast between tenure track and teaching professor
+
+This model means that tenure track professors (when rank = 0) are predicted to have a 4.28 evaluation score. For every one unit increase (when the professor is a teaching professor), the evaluation score is expected to increase by 0.13 units.
+
+R-squared value is 0.007332, which indicates that the model explains only about 0.73% of the variability in professor evaluation scores. Based on the p value of both contrast, difference between tenure track vs. tenured and tenure track vs. teaching are not significant.
+```{r exercise12_code}
+
+## if tenure track is the reference group (coded as 0)
+
+evals$rank <- relevel(evals$rank, ref = "tenure track")
+m_rank_relevel <-lm(evals$score ~ evals$rank)
+summary(m_rank_relevel)
+  
+
+```
+
+## Exercise 14 & 15
+
+score = -0.14*tenure_eligible + 4.28
+
+When tenure_eligible = 0 (teaching professor), the predicted evaluation score is 4.2843.
+When tenure_eligible = 1 (tenure-track or tenured professor), the evaluation score decreases by 0.1406 units on average.
+p-value = 0.021, suggesting that tenure-eligible professor receive slightly lower teaching evaluation scores compared to non-tenure-eligible (teaching) faculty; the difference between "tenure eligibleness" is statistically significant.
+R-squared is 0.00935, meaning that tenure eligibility explains only about 0.94% of the variance in evaluation scores.
+```{r exercise14_code}
+
+evals <- evals %>%
+  mutate(tenure_eligible = ifelse(rank == "teaching", "no", "yes"))
+
+m_tenure_eligible <-lm(score ~ tenure_eligible, data = evals)
+summary(m_tenure_eligible)
+
+```

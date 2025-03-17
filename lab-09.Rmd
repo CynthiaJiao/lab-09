@@ -172,7 +172,7 @@ summary(m_rank_relevel)
 
 score = -0.14*tenure_eligible + 4.28
 
-When tenure_eligible = 0 (teaching professor), the predicted evaluation score is 4.2843.
+When tenure_eligible = 0 (teaching professor), the predicted evaluation score is 4.28.
 When tenure_eligible = 1 (tenure-track or tenured professor), the evaluation score decreases by 0.1406 units on average.
 p-value = 0.021, suggesting that tenure-eligible professor receive slightly lower teaching evaluation scores compared to non-tenure-eligible (teaching) faculty; the difference between "tenure eligibleness" is statistically significant.
 R-squared is 0.00935, meaning that tenure eligibility explains only about 0.94% of the variance in evaluation scores.
